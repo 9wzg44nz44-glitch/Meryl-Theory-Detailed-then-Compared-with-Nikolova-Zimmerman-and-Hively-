@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meyl from the Ground Up — Potential Vortices, Scalar Waves, and an SNR Comparison</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #141a2e;
+    --ink: #e8edf7;
+    --muted: #9aa6c0;
+    --accent: #7ec8e3;
+    --meyl: #e8b86d;
+    --hively: #7fd39a;
+    --nz: #c9a0ff;
+    --warn: #f0a07a;
+    --line: #2a3354;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  header {
+    padding: 2.2rem 1.4rem 1.4rem;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #121933, var(--bg));
+  }
+  header h1 { margin: 0 0 .4rem; font-size: 1.85rem; font-weight: 600; }
+  header p { margin: 0; color: var(--muted); max-width: 52rem; }
+  nav {
+    display: flex; flex-wrap: wrap; gap: .5rem 1rem;
+    padding: .8rem 1.4rem;
+    background: #101628;
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 5;
+    font-family: system-ui, sans-serif; font-size: .86rem;
+  }
+  nav a { color: var(--accent); text-decoration: none; }
+  nav a:hover { text-decoration: underline; }
+  main { max-width: 980px; margin: 0 auto; padding: 1.4rem; }
+  section { margin: 2.2rem 0; }
+  h2 { color: var(--accent); font-size: 1.35rem; margin: 0 0 .7rem; }
+  h3 { color: var(--meyl); font-size: 1.08rem; margin: 1.3rem 0 .45rem; }
+  p { margin: .7rem 0; }
+  .note, .warn, .ok {
+    border-left: 3px solid var(--accent);
+    background: var(--panel);
+    padding: .7rem 1rem;
+    margin: 1rem 0;
+  }
+  .warn { border-color: var(--warn); }
+  .ok { border-color: var(--hively); }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; margin: 1rem 0; }
+  th, td { border: 1px solid var(--line); padding: .45rem .55rem; vertical-align: top; }
+  th { background: #1b2340; text-align: left; }
+  .eq {
+    overflow-x: auto;
+    background: #0e1428;
+    border: 1px solid var(--line);
+    padding: .8rem 1rem;
+    margin: .8rem 0;
+    font-family: "Cambria Math", "Times New Roman", serif;
+    font-size: 1.02rem;
+  }
+  .sim {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .7rem 1rem; }
+  label { display: block; font-family: system-ui, sans-serif; font-size: .82rem; color: var(--muted); }
+  input[type=range] { width: 100%; }
+  .val { color: var(--ink); font-variant-numeric: tabular-nums; }
+  canvas { width: 100%; height: 320px; background: #0a0f1e; border: 1px solid var(--line); margin-top: .8rem; }
+  .legend { display: flex; gap: 1rem; flex-wrap: wrap; font-family: system-ui, sans-serif; font-size: .85rem; margin-top: .4rem; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: .3rem; }
+  .readout { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .86rem; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem; margin-top: .8rem; }
+  .card { background: #0e1428; padding: .6rem .7rem; border: 1px solid var(--line); }
+  .card b { display: block; font-family: system-ui, sans-serif; font-size: .78rem; color: var(--muted); font-weight: 500; }
+  footer { color: var(--muted); font-size: .85rem; padding: 2rem 1.4rem; border-top: 1px solid var(--line); }
+  ul { padding-left: 1.2rem; }
+  li { margin: .25rem 0; }
+  .small { color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Meyl from the ground up</h1>
+  <p>Potential vortices, Faraday instead of Maxwell, the split wave equation, and a side-by-side SNR sandbox against Hively EED and Nikolova–Zimmerman. Built as a teaching page, not a proof.</p>
+</header>
+<nav>
+  <a href="#why">Why Faraday first</a>
+  <a href="#eqs">Equations</a>
+  <a href="#props">Properties</a>
+  <a href="#greenyer">Toroidal moment</a>
+  <a href="#compare">Three models</a>
+  <a href="#laws">SNR laws</a>
+  <a href="#sim">SNR simulator</a>
+  <a href="#caveat">Caveats</a>
+  <a href="#sources">Sources</a>
+</nav>
+<main>
+
+<section id="why">
+  <h2>1. The starting move</h2>
+  <p>Konstantin Meyl (Prof. Dr.-Ing., Furtwangen) does not start from the Heaviside–Hertz form of Maxwell. He starts from Faraday’s law of induction and asks what was dropped when the electric field was forced to be irrotational except for ∂B/∂t.</p>
+  <p>Textbook Faraday–Maxwell induction is</p>
+  <div class="eq">∇ × E = − ∂B / ∂t</div>
+  <p>Meyl’s dual extension adds a relaxation / vortex term with a time constant τ₂. He writes a potential density dual to current density:</p>
+  <div class="eq">b = B / τ₂</div>
+  <div class="eq">∇ × E = − ∂B/∂t − B/τ₂ = −μ (∂H/∂t + H/τ₂)</div>
+  <p>When τ₂ → ∞ the extra term vanishes and Maxwell is recovered. Finite τ₂ is the potential vortex of the electric field: a curl of E that is not produced by a changing B. That is the whole invention. Everything else — “scalar wave,” neutrino story, Tesla coil kit, Faraday-cage claim — is a reading of what those vortices do once they exist.</p>
+  <div class="note">NASA/CR-2005-213749 (Alexander, MSE, Apr 2005), §3.4.3, is the standing survey of this line next to Valone and Puthoff US 5,845,220. Treat it as the institutional map, not as NASA endorsement of over-unity.</div>
+</section>
+
+<section id="eqs">
+  <h2>2. The fundamental field equation</h2>
+  <p>From the extended induction law plus Ampère with a finite eddy-current time constant τ₁, Meyl obtains one vector PDE that is supposed to contain four pieces at once:</p>
+  <div class="eq">−c² ∇ × (∇ × E) = ∂²E/∂t² + (1/τ₁ + 1/τ₂) ∂E/∂t + E/(τ₁ τ₂)</div>
+  <p>Term by term, as he labels them:</p>
+  <ul>
+    <li><strong>Wave term</strong> — ordinary d’Alembert / Hertz piece, speed locked at c.</li>
+    <li><strong>Eddy-current damping</strong> — τ₁, conducting media, skin effect.</li>
+    <li><strong>Potential-vortex damping</strong> — τ₂, dielectrics and vacuum in his reading.</li>
+    <li><strong>Poisson / source term</strong> — spatial distribution of currents and potentials.</li>
+  </ul>
+  <p>He then splits the vector identity</p>
+  <div class="eq">∇²E = ∇(∇ · E) − ∇ × (∇ × E)</div>
+  <p>and reads the two pieces as two different waves:</p>
+  <div class="eq">v² ∇(∇ · B) − c² ∇ × (∇ × B) = ∂²B/∂t²</div>
+  <p>Left term: longitudinal / “scalar,” speed v not fixed. Right term: transverse Hertz, speed c fixed. Because ∇ · B is a scalar, he calls the longitudinal piece a scalar wave. That is a naming choice. It is not the same object as a mathematical scalar field φ(x,t) with no direction.</p>
+  <h3>Plasma-wave reduction</h3>
+  <p>If E=-∇φ, then ∇×E=0 by construction and the longitudinal branch becomes an inhomogeneous wave for the potential:</p>
+  <div class="eq">∇²φ − (1/c²) ∂²φ/∂t² = −ρ/ε</div>
+  <p>That is the ordinary Langmuir / plasma-wave equation. Meyl’s extra claim is that the same longitudinal structure survives in air and vacuum because the potential vortex itself plays the role of the “particle” that can shove the next particle — a Helmholtz ring vortex, not an electron gas.</p>
+</section>
+
+<section id="props">
+  <h2>3. What he says the vortex does</h2>
+  <table>
+    <tr><th>Claim</th><th>Meyl’s picture</th></tr>
+    <tr><td>Speed</td><td>Not locked at c. Oscillates with the field pointer. Tesla-band vortices ~c to ~1.6c; “neutrino” vortices ≳1.6c and more stable.</td></tr>
+    <tr><td>Size vs speed</td><td>Faster vortex Lorentz-contracts. Small enough vortices tunnel. That is his Faraday-cage story.</td></tr>
+    <tr><td>Particle dictionary</td><td>v &lt; c → electron-like; v = c → photon-like; v &gt; c → neutrino-like. One object, three speed regimes.</td></tr>
+    <tr><td>Coupling</td><td>Transmitter and receiver lock as a resonant pair. Energy “seeks” the receiver. Hertzian broadcast is the leftover that did not roll up into vortices.</td></tr>
+    <tr><td>Noise</td><td>Antenna noise is the unrolled / decaying vortex fraction — not just thermal Johnson noise.</td></tr>
+    <tr><td>Kit numbers</td><td>Same coil geometry: Hertzian resonance ~4.6–4.7 MHz, “scalar” resonance ~7.0–7.1 MHz. He reads 7.1/4.6 ≈ 1.54 as v/c.</td></tr>
+  </table>
+  <p class="small">The 7.1 vs 4.7 MHz ratio is a frequency ratio at fixed geometry. Interpreting it as a speed ratio assumes wavelength is unchanged. That step is the one Gerhard Bruhn called a category error: the number of cycles per second at the source and at the receiver still has to match if it is the same wave.</p>
+</section>
+
+<section id="greenyer">
+  <h2>4. Why this rhymes with Greenyer’s toroidal moment</h2>
+  <p>Bob Greenyer’s “fractal toroidal moment” is not Meyl’s PDE. It comes from Zel’dovich’s anapole (1957) and Dubovik’s toroidal multipole (1965/67): a current that runs in poloidal loops around a torus so the magnetic moments cancel as a dipole and what remains is a toroidal moment T.</p>
+  <div class="eq">Tᵢ = (1/10c) ∫ [ rᵢ (r · J) − 2 r² Jᵢ ] d³r</div>
+  <p>Alignment, not identity:</p>
+  <ul>
+    <li>Both treat a closed field vortex as the primitive object, not the Hertzian TEM pair.</li>
+    <li>Both want a configuration that can be field-quiet outside (anapole / non-radiating) while still carrying structure and momentum inside.</li>
+    <li>Both talk about nested / fractal vortices: Meyl’s potential vortex as particle; Greenyer’s super/hyper-toroidals as stacked T-moments.</li>
+    <li>Both look at Tesla-style coils, pancake windings, and plasma objects (EVOs, ball lightning, Shoulders) as engineering cousins of that geometry.</li>
+  </ul>
+  <p>Where they split: Meyl writes an extended Maxwell PDE and a variable-speed scalar wave. Greenyer organizes condensed-matter / LENR morphology around a documented multipole (T) and around phase singularities. You can use Meyl as a wave-language for the same topology Greenyer draws. You should not paste Meyl’s over-unity or 1.5c claims into Dubovik’s T as if they were theorems.</p>
+  <div class="ok">Working hypothesis worth testing, not assuming: a bifilar or caduceus winding that Hively uses to launch a C ≠ 0, B ≈ 0 longitudinal E is geometrically a first-order toroidal-moment antenna. Meyl’s dual Tesla spheres are a cruder, higher-voltage version of the same topology.</div>
+</section>
+
+<section id="compare">
+  <h2>5. Three missing-term stories</h2>
+  <table>
+    <tr>
+      <th></th>
+      <th style="color:var(--meyl)">Meyl</th>
+      <th style="color:var(--hively)">Hively EED</th>
+      <th style="color:var(--nz)">Nikolova–Zimmerman</th>
+    </tr>
+    <tr>
+      <td>What was incomplete</td>
+      <td>Irrotational-E axiom; ∇·B=0</td>
+      <td>Forcing the Lorenz leftover C=0</td>
+      <td>Treating A as gauge fiction only</td>
+    </tr>
+    <tr>
+      <td>New object</td>
+      <td>Potential vortex; τ₂</td>
+      <td>C\equiv∇·A+c⁻²∂ₜ\Phi as a field</td>
+      <td>Longitudinal A∥ (TM<sub>01</sub>-like)</td>
+    </tr>
+    <tr>
+      <td>Wave</td>
+      <td>Longitudinal E-structure, speed free</td>
+      <td>B=0, C≠ 0, E∥∇ C, speed c</td>
+      <td>A∥ e^{jω t} k̂, speed c</td>
+    </tr>
+    <tr>
+      <td>Cage / seawater</td>
+      <td>Fast vortices tunnel; skin does not apply</td>
+      <td>No classical skin δ for SLW</td>
+      <td>Ordinary metals miss A∥; plasma / biased charge sees momentum kick</td>
+    </tr>
+    <tr>
+      <td>Energy at RX</td>
+      <td>Can exceed TX (claimed ~10×)</td>
+      <td>Extra CE terms; continuity may fail briefly</td>
+      <td>Detected RF power from detector bias, not TEM Poynting</td>
+    </tr>
+    <tr>
+      <td>Hardware</td>
+      <td>Paired Tesla pancakes + spheres + LEDs in a box</td>
+      <td>Linear monopole, bifilar, VNA S<sub>21</sub></td>
+      <td>~1.3 GHz coax/circular TM01, neon / plasma</td>
+    </tr>
+  </table>
+</section>
+
+<section id="laws">
+  <h2>6. How the sandbox computes SNR</h2>
+  <p>Shared drive: current I into a 50 Ω equivalent, P_tx=½ I^{2}· 50. Shared intercept area A_e=0.1 m². Shared spreading 1/R^{2}. Noise is a flat floor N₀ in dBm (bandwidth already folded in). What changes is only the loss law each author tells.</p>
+  <div class="eq">SNR_dB = 10 log₁₀ (Pᵣ / N₀)</div>
+  <p><strong>Classical TEM reference.</strong> Hull preset adds 3 cm of steel (σ∼ 10⁷ S/m) in front of seawater.</p>
+  <div class="eq">δ = √(2 / ωμσ) ,   L_skin = e^(−2R/δ)</div>
+  <p><strong>Hively EED / SLW.</strong> B=0, C≠ 0, longitudinal E∥∇ C. No classical skin. Residual loss is weak conductivity damping, not 1/δ.</p>
+  <div class="eq">α_H ≈ 0.15 · (σ/2) √(μ/ε) ,   L_H = e^(−2 α_H R)</div>
+  <p><strong>Nikolova–Zimmerman.</strong> Longitudinal A∥ still falls as 1/R. Metallic antennas miss most of it; plasma / biased charge coupling η∼ 0.05. Residual \alpha_{Z} is a bit harsher than Hively’s because they never claimed a skin-free conducting path — they claimed a different detector.</p>
+  <div class="eq">α_Z ≈ 0.4 · (σ/2) √(μ/ε) ,   L_Z = e^(−2 α_Z R)</div>
+  <p><strong>Meyl vortex (claim model).</strong> Tunnel factor T∈[0,1] interpolates full skin and Hively-like residual. v/c raises effective tunneling and lowers \alpha_{M}. That encodes his contraction story without putting over-unity into Pᵣ.</p>
+  <div class="eq">T_eff = clip( T + 0.15(v/c − 1) , 0, 1 ) ,   α_M ≈ 0.08 · (σ/2) √(μ/ε) / (v/c)</div>
+  <div class="eq">L_M = e^(−2 α_M R) · ( T_eff + (1 − T_eff) e^(−2R/δ) )</div>
+</section>
+
+<section id="sim">
+  <h2>7. SNR sandbox</h2>
+  <p>Defaults sit on the case you keep coming back to: about 1 A–5 A, L-band, seawater, 100 m to 100 km. Preset buttons jump there. Curves are model cartoons. Use them to see which assumption moves the link, then go measure S<sub>21</sub>.</p>
+
+  <div class="sim">
+    <div class="controls">
+      <label>TX current I <span class="val" id="vI">1.00 A</span>
+        <input id="I" type="range" min="0.001" max="5" step="0.001" value="1">
+      </label>
+      <label>Frequency f <span class="val" id="vf">1.30 GHz</span>
+        <input id="f" type="range" min="0.1" max="15" step="0.01" value="1.3">
+      </label>
+      <label>Range R <span class="val" id="vR">100 m</span>
+        <input id="R" type="range" min="1" max="500000" step="1" value="100">
+      </label>
+      <label>Noise floor N<sub>0</sub> <span class="val" id="vN">−140 dBm</span>
+        <input id="N" type="range" min="-180" max="-60" step="1" value="-140">
+      </label>
+      <label>Medium
+        <select id="med" style="width:100%;margin-top:.25rem;background:#0e1428;color:#e8edf7;border:1px solid #2a3354;padding:.25rem">
+          <option value="air">Air / free space</option>
+          <option value="sw" selected>Seawater</option>
+          <option value="crust">Wet crust</option>
+          <option value="hull">Steel hull then seawater</option>
+        </select>
+      </label>
+      <label>Meyl speed ratio v/c <span class="val" id="vv">1.50</span>
+        <input id="vc" type="range" min="0.5" max="3" step="0.01" value="1.5">
+      </label>
+      <label>Meyl tunnel factor (0 = full skin, 1 = no skin) <span class="val" id="vt">0.85</span>
+        <input id="tun" type="range" min="0" max="1" step="0.01" value="0.85">
+      </label>
+      <label>Plot vs
+        <select id="axis" style="width:100%;margin-top:.25rem;background:#0e1428;color:#e8edf7;border:1px solid #2a3354;padding:.25rem">
+          <option value="R" selected>Range</option>
+          <option value="f">Frequency</option>
+        </select>
+      </label>
+    </div>
+    <canvas id="plot" width="900" height="320"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="background:#888"></i>Classical TEM + skin</span>
+      <span><i class="dot" style="background:#e8b86d"></i>Meyl vortex model</span>
+      <span><i class="dot" style="background:#7fd39a"></i>Hively EED / SLW</span>
+      <span><i class="dot" style="background:#c9a0ff"></i>Nikolova–Zimmerman A∥</span>
+    </div>
+    <p style="margin:.8rem 0 .4rem;font-family:system-ui,sans-serif;font-size:.85rem">
+      <button type="button" id="p100m" style="background:#1b2340;color:#e8edf7;border:1px solid #2a3354;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">1 A / 1.3 GHz / 100 m / seawater</button>
+      <button type="button" id="p100k" style="background:#1b2340;color:#e8edf7;border:1px solid #2a3354;padding:.35rem .6rem;margin-right:.35rem;cursor:pointer">5 A / 1.3 GHz / 100 km / seawater</button>
+      <button type="button" id="p500k" style="background:#1b2340;color:#e8edf7;border:1px solid #2a3354;padding:.35rem .6rem;cursor:pointer">5 A / 1.3 GHz / 500 km / crust</button>
+    </p>
+    <div class="readout">
+      <div class="card" style="border-color:#e8b86d"><b>Meyl SNR</b><span id="sM">—</span></div>
+      <div class="card" style="border-color:#7fd39a"><b>Hively SNR</b><span id="sH">—</span></div>
+      <div class="card" style="border-color:#c9a0ff"><b>N–Z SNR</b><span id="sZ">—</span></div>
+    </div>
+    <p class="small" id="explain"></p>
+  </div>
+</section>
+
+<section id="caveat">
+  <h2>8. What a careful EE should keep separate</h2>
+  <div class="warn">
+    <p><strong>Mathematics:</strong> Bruhn (TU Darmstadt) showed that if you demand both Meyl’s “scalar-wave condition” ∇×E=0 and source-free Maxwell in a homogeneous neutral medium, the only leftover solutions are not oscillating waves. Meyl’s reply is that the medium is not source-free because the vortex <em>is</em> the source. That is a modeling choice, not a derivation from Maxwell.</p>
+    <p><strong>Experiment:</strong> LED-in-a-box and dual-resonance kits are easy to fool with common-mode RF, ground loops, and rectifier pickup. Hively-style S<sub>21</sub> vs distance in a sealed can, and Zimmerman-style bias-reversed plasma, are harder tests. Use those as the bar.</p>
+    <p><strong>Over-unity and 1.5c:</strong> recorded as Meyl claims. Not used as defaults in the sandbox energy budget. The v/c slider only changes his loss model, not special-relativistic kinematics.</p>
+  </div>
+</section>
+
+<section id="sources">
+  <h2>9. Primary sources</h2>
+  <ul>
+    <li>K. Meyl, <em>Scalar Waves</em> lecture series / documentation (INDEL); papers “Scalar Waves: Theory and Experiments” (2001, 2004).</li>
+    <li>NASA/CR-2005-213749, Alexander, <em>Advanced Energetics for Aeronautical Applications, Vol. II</em>, §3 (Steinmetz, Tesla vs Hertz, Valone, Puthoff 5,845,220, Meyl).</li>
+    <li>G. W. Bruhn, “On the Existence of K. Meyl’s Scalar Waves,” <em>J. Scientific Exploration</em> 15(2), and the TU Darmstadt notes on the FFG.</li>
+    <li>L. M. Hively, US 9,306,527 — SLW / more-complete electrodynamics.</li>
+    <li>R. K. Zimmerman, QEX 2011; Nikolova &amp; Zimmerman, JAP 2013 (plasma reception of longitudinal A).</li>
+    <li>V. M. Dubovik / Zel’dovich anapole and toroidal moment; Greenyer / MFMP talks on fractal T and EVOs.</li>
+  </ul>
+  <p class="small">Earlier comparison page: the static EE map at 9wzg44nz44-glitch.github.io/Meyl-Hively-Nikolova-Zimmerman. This page is the ground-up Meyl half plus a live SNR overlay.</p>
+</section>
+</main>
+<footer>
+  Teaching model for personal study. Equations follow Meyl’s published FFG and the dual-induction step; SNR curves are engineering cartoons of each author’s loss story. They are not measured link budgets.
+  <p style="margin-top:1rem">This webpage was built by Dan Britton with Grok’s help.<br>
+  Contact: <a href="mailto:BrittonSolutions@icloud.com" style="color:#7ec8e3">BrittonSolutions@icloud.com</a></p>
+</footer>
+<script>
+(function () {
+  const el = id => document.getElementById(id);
+  const media = {
+    air:   { epsr: 1,    sigma: 0,     name: "air" },
+    sw:    { epsr: 80,   sigma: 4,     name: "seawater" },
+    crust: { epsr: 15,   sigma: 0.01,  name: "wet crust" },
+    hull:  { epsr: 80,   sigma: 4,     name: "seawater past a hull" }
+  };
+
+  function fmtR(R) {
+    if (R >= 1000) return (R/1000).toFixed(R >= 10000 ? 0 : 1) + " km";
+    return R.toFixed(0) + " m";
+  }
+  function skinDelta(f, mu, sigma) {
+    if (sigma <= 0) return Infinity;
+    return Math.sqrt(2 / (2 * Math.PI * f * mu * sigma));
+  }
+  function models(I, fHz, R, medKey, vc, tun, Ndbm) {
+    const mu0 = 4e-7 * Math.PI;
+    const eps0 = 8.854e-12;
+    const c = 3e8;
+    const med = media[medKey];
+    const sigma = med.sigma;
+    const eps = med.epsr * eps0;
+    const omega = 2 * Math.PI * fHz;
+    const delta = skinDelta(fHz, mu0, sigma);
+    const Z0 = 377;
+    // crude radiated / coupled power proxy from current on a short structure
+    const Ptx = 0.5 * I * I * 50; // 50 ohm equivalent drive, watts
+    const spreading = 1 / Math.max(R * R, 1);
+    const Aeff = 0.1; // 0.1 m^2 effective intercept, shared so models differ by LOSS not by antenna luck
+
+    function snrFromPr(Pr) {
+      const N = Math.pow(10, (Ndbm - 30) / 10); // watts
+      if (Pr <= 0) return -200;
+      return 10 * Math.log10(Pr / N);
+    }
+
+    // Classical TEM: Friis-ish + exponential skin through conducting path
+    let LskinC = 1;
+    if (isFinite(delta)) LskinC = Math.exp(-2 * R / delta);
+    if (medKey === "hull") LskinC *= Math.exp(-2 * 0.03 / Math.max(skinDelta(fHz, mu0, 1e7), 1e-9));
+    const PrC = Ptx * spreading * Aeff * LskinC * (Z0 / 50) * 1e-4;
+
+    // Hively: no classical skin on SLW; mild dielectric / conductivity loss from C-wave
+    // alpha_H ~ (sigma/2) * sqrt(mu/eps) as a conservative residual, much weaker than 1/delta
+    const alphaH = sigma > 0 ? 0.15 * (sigma / 2) * Math.sqrt(mu0 / Math.max(eps, eps0)) : 0;
+    const LH = Math.exp(-2 * alphaH * R);
+    const PrH = Ptx * spreading * Aeff * LH * 2e-3;
+
+    // Nikolova-Zimmerman: 1/R field for A_parallel, power ~ 1/R^2, coupling efficiency lower
+    // because metallic antennas miss it; plasma coupling eta ~ 0.05
+    const alphaZ = sigma > 0 ? 0.4 * (sigma / 2) * Math.sqrt(mu0 / Math.max(eps, eps0)) : 0;
+    const LZ = Math.exp(-2 * alphaZ * R);
+    const PrZ = Ptx * spreading * Aeff * LZ * 8e-4;
+
+    // Meyl: user tunnel factor interpolates between full skin and Hively-like residual.
+    // v/c changes effective wavelength / contraction: higher v => more tunneling in his story.
+    const tunEff = Math.min(1, Math.max(0, tun + 0.15 * (vc - 1)));
+    const LskinM = isFinite(delta) ? Math.exp(-2 * R / delta) : 1;
+    const alphaM = sigma > 0 ? 0.08 * (sigma / 2) * Math.sqrt(mu0 / Math.max(eps, eps0)) / Math.max(vc, 0.3) : 0;
+    const LM = Math.exp(-2 * alphaM * R) * (tunEff + (1 - tunEff) * LskinM);
+    const PrM = Ptx * spreading * Aeff * LM * 1.2e-3;
+
+    return {
+      C: snrFromPr(PrC),
+      M: snrFromPr(PrM),
+      H: snrFromPr(PrH),
+      Z: snrFromPr(PrZ),
+      delta, Ptx
+    };
+  }
+
+  function draw() {
+    const I = parseFloat(el("I").value);
+    const fG = parseFloat(el("f").value);
+    const R0 = parseFloat(el("R").value);
+    const Ndbm = parseFloat(el("N").value);
+    const med = el("med").value;
+    const vc = parseFloat(el("vc").value);
+    const tun = parseFloat(el("tun").value);
+    const axis = el("axis").value;
+    const fHz = fG * 1e9;
+
+    el("vI").textContent = I >= 1 ? I.toFixed(2) + " A" : (I*1000).toFixed(1) + " mA";
+    el("vf").textContent = fG.toFixed(2) + " GHz";
+    el("vR").textContent = fmtR(R0);
+    el("vN").textContent = Ndbm.toFixed(0) + " dBm";
+    el("vv").textContent = vc.toFixed(2);
+    el("vt").textContent = tun.toFixed(2);
+
+    const now = models(I, fHz, R0, med, vc, tun, Ndbm);
+    const fmt = x => (x < -180 ? "< −180 dB" : x.toFixed(1) + " dB");
+    el("sM").textContent = fmt(now.M);
+    el("sH").textContent = fmt(now.H);
+    el("sZ").textContent = fmt(now.Z);
+
+    const dstr = isFinite(now.delta) ? (now.delta < 1 ? (now.delta*100).toFixed(2) + " cm" : now.delta.toFixed(2) + " m") : "∞";
+    el("explain").textContent =
+      "Classical skin depth δ ≈ " + dstr + " in " + media[med].name +
+      " at this frequency. Hively and N–Z keep c fixed and drop most of that exponential. Meyl interpolates with the tunnel slider and contracts loss as v/c rises. Spreading is 1/R² for all four so the plot isolates the loss law.";
+
+    const cv = el("plot");
+    const ctx = cv.getContext("2d");
+    const W = cv.width, H = cv.height;
+    ctx.fillStyle = "#0a0f1e";
+    ctx.fillRect(0,0,W,H);
+
+    const pts = 120;
+    const series = { C: [], M: [], H: [], Z: [] };
+    let xmin, xmax, xlog = false;
+    if (axis === "R") {
+      xmin = 1; xmax = 5e5; xlog = true;
+    } else {
+      xmin = 1e8; xmax = 1.5e10; xlog = true;
+    }
+    function xmap(x) {
+      if (xlog) return 50 + (W-70) * (Math.log10(x) - Math.log10(xmin)) / (Math.log10(xmax) - Math.log10(xmin));
+      return 50 + (W-70) * (x - xmin) / (xmax - xmin);
+    }
+    let ymin = 40, ymax = -200;
+    for (let i = 0; i < pts; i++) {
+      const t = i / (pts - 1);
+      const x = xlog ? xmin * Math.pow(xmax/xmin, t) : xmin + t * (xmax-xmin);
+      const R = axis === "R" ? x : R0;
+      const f = axis === "f" ? x : fHz;
+      const m = models(I, f, R, med, vc, tun, Ndbm);
+      series.C.push([x, m.C]); series.M.push([x, m.M]);
+      series.H.push([x, m.H]); series.Z.push([x, m.Z]);
+      [m.C, m.M, m.H, m.Z].forEach(v => {
+        if (v > ymax) ymax = v;
+        if (v < ymin) ymin = v;
+      });
+    }
+    ymax = Math.min(80, Math.ceil(ymax/10)*10 + 10);
+    ymin = Math.max(-200, Math.floor(ymin/10)*10 - 10);
+    function ymap(y) { return 16 + (H-36) * (ymax - y) / (ymax - ymin); }
+
+    ctx.strokeStyle = "#2a3354";
+    ctx.lineWidth = 1;
+    ctx.font = "11px system-ui, sans-serif";
+    ctx.fillStyle = "#9aa6c0";
+    for (let y = ymin; y <= ymax; y += 20) {
+      ctx.beginPath(); ctx.moveTo(50, ymap(y)); ctx.lineTo(W-12, ymap(y)); ctx.stroke();
+      ctx.fillText(y + " dB", 4, ymap(y)+4);
+    }
+    const ticks = axis === "R"
+      ? [1,10,100,1e3,1e4,1e5,5e5]
+      : [1e8,3e8,1e9,3e9,1e10,1.5e10];
+    ticks.forEach(x => {
+      if (x < xmin || x > xmax) return;
+      ctx.beginPath(); ctx.moveTo(xmap(x), 16); ctx.lineTo(xmap(x), H-20); ctx.stroke();
+      const lab = axis === "R" ? (x>=1000 ? (x/1000)+" km" : x+" m") : (x>=1e9 ? (x/1e9)+" GHz" : (x/1e6)+" MHz");
+      ctx.fillText(lab, xmap(x)-12, H-6);
+    });
+
+    function stroke(arr, color) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      arr.forEach((p,i) => {
+        const X = xmap(p[0]), Y = ymap(p[1]);
+        if (i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+      });
+      ctx.stroke();
+    }
+    stroke(series.C, "#888888");
+    stroke(series.M, "#e8b86d");
+    stroke(series.H, "#7fd39a");
+    stroke(series.Z, "#c9a0ff");
+
+    // marker at current R or f
+    const xnow = axis === "R" ? R0 : fHz;
+    ctx.strokeStyle = "#e8edf7";
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(xmap(xnow), 16); ctx.lineTo(xmap(xnow), H-20); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ["I","f","R","N","med","vc","tun","axis"].forEach(id => {
+    el(id).addEventListener("input", draw);
+    el(id).addEventListener("change", draw);
+  });
+  function preset(I, f, R, med) {
+    el("I").value = I; el("f").value = f; el("R").value = R; el("med").value = med;
+    draw();
+  }
+  el("p100m").addEventListener("click", () => preset(1, 1.3, 100, "sw"));
+  el("p100k").addEventListener("click", () => preset(5, 1.3, 100000, "sw"));
+  el("p500k").addEventListener("click", () => preset(5, 1.3, 500000, "crust"));
+  draw();
+})();
+</script>
+</body>
+</html>
